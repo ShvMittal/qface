@@ -1,0 +1,4 @@
+frontend:
+    module:
+        documents:
+            - '{{module.module_name|lower}}module.txt': 'module.txt'

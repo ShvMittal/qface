@@ -1,4 +1,4 @@
-from qface.generator import FileSystem, Generator
+from qface.generator import FileSystem, Generator, RuleGenerator
 from qface.utils import load_filters
 from unittest.mock import patch
 from io import StringIO
@@ -79,6 +79,30 @@ def test_destination_prefix():
         assert Path(path).exists() == True
     shutil.rmtree(out, ignore_errors=True)
 
+def test_regeneration():
+    system = FileSystem.parse(inputPath)
+    out = Path('tests/out')
+    shutil.rmtree(out, ignore_errors=True)
+    out.mkdir(parents=True, exist_ok=True)
+    generator = Generator(search_path='tests/templates')
+    for module in system.modules:
+        dst_template = '{{out}}/{{module|lower}}.txt'
+        ctx = {'out': out.absolute(), 'module': module}
+        generator.write(dst_template, 'module.txt', ctx)
+        generator.write(dst_template, 'module.txt', ctx)
+        path = generator.apply(dst_template, ctx)
+        assert Path(path).exists() == True
+    shutil.rmtree(out, ignore_errors=True)
+
+def test_rulegenerator():
+    system = FileSystem.parse(inputPath)
+    out = Path('tests/out')
+    shutil.rmtree(out, ignore_errors=True)
+    out.mkdir(parents=True, exist_ok=True)
+    generator = RuleGenerator(search_path='tests/templates', destination=out)
+    generator.process_rules('tests/templates/rules.yaml', system)
+    shutil.rmtree(out, ignore_errors=True)
+
 @patch('sys.stderr', new_callable=StringIO)
 def test_error_template_syntax_error(mock_stderr):
     tmpDir = tempfile.TemporaryDirectory()
@@ -117,3 +141,14 @@ def test_error_template_doesnt_exist(mock_stderr):
     path = generator.apply(dst_template, ctx)
     assert Path(path).exists() == False
     assert mock_stderr.getvalue() == "/doesnt_exist.txt: error: Template not found\n"
+
+@patch('sys.stderr', new_callable=StringIO)
+def test_error_yaml_doesnt_exist(mock_stderr):
+    tmpDir = tempfile.TemporaryDirectory()
+    system = FileSystem.parse(inputPath)
+    out = Path('tests/out')
+    shutil.rmtree(out, ignore_errors=True)
+    out.mkdir(parents=True, exist_ok=True)
+    generator = RuleGenerator(search_path='tests/templates', destination=out)
+    generator.process_rules('doesnt_exist.txt', system)
+    assert mock_stderr.getvalue() == "yaml document does not exists: doesnt_exist.txt\n"

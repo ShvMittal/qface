@@ -79,6 +79,8 @@ class Generator(object):
     """ enables strict code generation """
 
     def __init__(self, search_path, context={}, force=False):
+        if not isinstance(search_path, (list, tuple)):
+            search_path = [search_path]
         loader = ChoiceLoader([
             FileSystemLoader(search_path),
             PackageLoader('qface')
@@ -209,7 +211,7 @@ class Generator(object):
         if not path.exists():
             return True
         dataHash = hashlib.new('md5', data.encode('utf-8')).digest()
-        pathHash = path.read_hash('md5')
+        pathHash = hashlib.new('md5', path.read_bytes()).digest()
         return dataHash != pathHash
 
     def register_filter(self, name, callback):
@@ -410,10 +412,6 @@ class FileSystem(object):
                     sys.exit(-1)
             return {}
         try:
-            # Silence the deprecation warning in newer path.py
-            # but keep supporting older versions
-            if not hasattr(Path, 'read_text'):
-                document.read_text = document.text
             return yaml.load(document.read_text(), Loader=Loader)
         except yaml.YAMLError as exc:
             error = document

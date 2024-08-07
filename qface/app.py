@@ -10,7 +10,7 @@ from qface.watch import monitor
 from qface.utils import load_filters
 from qface.shell import sh
 
-here = Path(__file__).dirname()
+here = Path(__file__).parent
 logging.basicConfig()
 
 
@@ -19,7 +19,7 @@ def run_generator(spec, src, dst, features, force):
     project = Path(dst).name
     system = FileSystem.parse(src)
 
-    extra_filters_path = spec.dirname() / 'filters.py'
+    extra_filters_path = spec.parent / 'filters.py'
     extra_filters = load_filters(extra_filters_path)
 
     ctx = {
@@ -29,7 +29,7 @@ def run_generator(spec, src, dst, features, force):
     }
 
     generator = RuleGenerator(
-        search_path=spec.dirname() / 'templates',
+        search_path=spec.parent / 'templates',
         destination=dst,
         context=ctx,
         features=features,
@@ -40,7 +40,7 @@ def run_generator(spec, src, dst, features, force):
 
 
 @click.command()
-@click.option('--rules', type=click.Path(exists=True, file_okay=True))
+@click.option('--rules', type=click.Path(exists=True, file_okay=True), required=True)
 @click.option('--target', type=click.Path(exists=False, file_okay=False))
 @click.option('--reload/--no-reload', default=False, help="Auto reload script on changes")
 @click.option('--scaffold/--no-scaffold', default=False, help="Add extrac scaffolding code")
@@ -55,7 +55,7 @@ def main(rules, target, reload, source, watch, scaffold, feature, force, run):
         argv = sys.argv.copy()
         argv.remove('--reload')
         watch_list = list(source)
-        watch_list.append(rules.dirname())
+        watch_list.append(rules.parent)
         if watch:
             watch_list.append(watch)
         monitor(args=argv, watch=watch_list)
