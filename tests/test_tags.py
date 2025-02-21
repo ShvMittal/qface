@@ -60,7 +60,7 @@ def test_flag():
     assert interface.attribute('config', 'a') == 'a'  # use value from yaml
     assert interface.attribute('config', 'b') == 'b'  # use value from yaml
     assert interface.attribute('config', 'c') == 'C'  # use value from IDL
-    assert interface.attribute('config', 'd') == 'D'  # use value from IDL, No Space after :
+    assert interface.attribute('config', 'd') == "qrc:/path"  # use value from IDL, Value containing :
     assert interface.tags['data'] == [1, 2, 3]  # array annotatiom
 
 def test_merge_annotation():
@@ -103,5 +103,14 @@ def test_merge_invalid_annotation(mock_stderr):
 
     assert interface.attribute('extra', 'extraA') is None
     expected_error = "Error parsing annotation tests/in/invalid_tuner_annotations.yaml: not able to lookup symbol: Tunerrrrrrrr\n"
+    actual_output = mock_stderr.getvalue().replace("\\", "/")  # Normalize backslashes
+    assert expected_error in actual_output, f"Expected error not found. Expected: {expected_error}, Actual: {actual_output}"
+
+@patch('sys.stderr', new_callable=StringIO)
+def test_broken_annotation(mock_stderr):
+    path = inputPath / 'com.pelagicore.two.qface'
+    system = FileSystem.parse_document(path)
+    assert system is None
+    expected_error = "YAML Formatting Error: Missing space after ':' in: qml_type:\"UiAddressBook\""
     actual_output = mock_stderr.getvalue().replace("\\", "/")  # Normalize backslashes
     assert expected_error in actual_output, f"Expected error not found. Expected: {expected_error}, Actual: {actual_output}"

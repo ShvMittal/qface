@@ -109,6 +109,17 @@ class DomainListener(QFaceListener):
         if not type.module.checkType(type):
             log.warning('Unknown type: {0}. Missing import?'.format(type.name))
 
+    def validate_yaml(self, lines):
+        for line in lines:
+            match = re.search(r'\{(.*)\}', line)
+            if match:
+                content = match.group(1)
+                pairs = content.split(",")
+                for pair in pairs:
+                    pair = pair.strip()
+                    if ':' in pair and not re.match(r'^\s*[^:\s]+\s*:\s+', pair):
+                        raise ValueError(f"YAML Formatting Error: Missing space after ':' in: {pair}")
+
     def parse_annotations(self, ctx, symbol):
         assert ctx and symbol
         if ctx.comment:
@@ -116,12 +127,13 @@ class DomainListener(QFaceListener):
             symbol.comment = comment
         if ctx.tagSymbol():
             lines = [tag.line.text[1:] for tag in ctx.tagSymbol()]
-            lines = [re.sub(r':\s*', ': ', line) for line in lines]
             try:
+                self.validate_yaml(lines)
                 data = yaml.load('\n'.join(lines), Loader=Loader)
                 symbol._tags = data
-            except yaml.YAMLError as exc:
-                click.secho(str(exc), fg='red')
+            except (yaml.YAMLError, ValueError) as exc:
+                click.secho(str(exc), fg='red', err=True)
+                raise
 
     def parse_value(self, ctx, symbol):
         self.check_support(EFeature.DEFAULT_VALUES)
